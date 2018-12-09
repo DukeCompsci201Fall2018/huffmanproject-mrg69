@@ -152,47 +152,50 @@ public class HuffProcessor {
 	 */
 	public void decompress(BitInputStream in, BitOutputStream out){
 
-		//keeping starter code for reference
-//		while (true){
-//			int val = in.readBits(BITS_PER_WORD);
-//			if (val == -1) break;
-//			out.writeBits(BITS_PER_WORD, val);
-//	}
-		
 		int val = in.readBits(BITS_PER_INT);
+			
 		if (val != HUFF_TREE) {
-			throw new HuffException("illegal header starts withh" +val);
+			throw new HuffException("illegal header starts with " + val);
 		}
 		
 		HuffNode root = readTreeHeader(in);
+		
 		readCompressedBits(root, in, out);
-		out.writeBits(BITS_PER_WORD, val);
 		out.close();
 	}
 
-	private void readCompressedBits(HuffNode root, BitInputStream in, BitOutputStream out) {
-		// TODO Auto-generated method stub
-		HuffNode h = root;
-		while (true) {
-			int i = in.readBits(1);
-			if (i == -1) throw new HuffException("No PSEUDO_EOF");
-			//Traversing HuffNodes; 0 for left, 1 for right
-			if (i == 0) h = h.myLeft;
-			if (i == 1) h = h.myRight;
-			if (h.myLeft == null && h.myRight == null) {
-				if (h.myValue == PSEUDO_EOF) break;
-				out.writeBits(BITS_PER_WORD, h.myValue);
-				h = root;
-			}
-		}
-	}
-
 	private HuffNode readTreeHeader(BitInputStream in) {
-		// TODO Auto-generated method stub
+		
 		int val = in.readBits(1);
 		
-		if (val == 0) return new HuffNode(0,0,readTreeHeader(in), readTreeHeader(in));
-		//9 is BITS_PER_WORD + 1
-		return new HuffNode(in.readBits(9),0, null, null);
+		if (val == 0) return new HuffNode(0, 0, readTreeHeader(in), readTreeHeader(in));
+		
+		return new HuffNode(in.readBits(9), 0, null, null);
 	}
+
+	
+	private void readCompressedBits(HuffNode root, BitInputStream in, BitOutputStream out) {
+		
+		
+		HuffNode a = root;
+		while (true) {
+			
+			int b = in.readBits(1);
+			if (b == -1) throw new HuffException("No PSEUDO_EOF!");
+			
+			if (b == 0) a = a.myLeft;
+			if (b == 1) a = a.myRight;
+			
+			if (a.myLeft == null && a.myRight == null) {
+				if (a.myValue == PSEUDO_EOF) break;
+				
+				out.writeBits(BITS_PER_WORD, a.myValue);
+				a = root;
+			}
+			
+		}
+	}
+	
+	
+	
 }
