@@ -42,14 +42,47 @@ public class HuffProcessor {
 	 *            Buffered bit stream writing to the output file.
 	 */
 	public void compress(BitInputStream in, BitOutputStream out){
-
-		while (true){
-			int val = in.readBits(BITS_PER_WORD);
-			if (val == -1) break;
-			out.writeBits(BITS_PER_WORD, val);
-		}
-		out.close();
+		//original skeleton code
+//		while (true){
+//			int val = in.readBits(BITS_PER_WORD);
+//			if (val == -1) break;
+//			out.writeBits(BITS_PER_WORD, val);
+//		}
+//		out.close();
+		
+		int[] counts = readForCounts(in);
+		HuffNode root = makeTreeFromCounts(counts);
+		
 	}
+	private HuffNode makeTreeFromCounts(int[] nums) {
+		// TODO Auto-generated method stub
+		PriorityQueue<HuffNode> pq = new PriorityQueue<HuffNode>();
+		for (int i = 0; i < nums.length; i++) {
+			if (nums[i] > 0) pq.add(new HuffNode(i, nums[i], null, null));
+		}
+		
+		pq.add(new HuffNode(PSEUDO_EOF, 0, null, null));
+		
+		while(pq.size() > 1) {
+			HuffNode myLeft = pq.remove();
+			HuffNode myRight = pq.remove();
+			pq.add(new HuffNode(0, myLeft.myWeight + myRight.myWeight, myLeft, myRight));
+		}
+		return pq.remove();
+	}
+
+	private int[] readForCounts(BitInputStream in) {
+		// TODO Auto-generated method stub
+		int [] size = new int[ALPH_SIZE + 1];
+		int val = in.readBits(BITS_PER_WORD);
+		while(val != -1) {
+			size[val]++;
+			val = in.readBits(BITS_PER_WORD);
+		}
+		size[PSEUDO_EOF] = 1;
+		return size;
+	}
+
 	/**
 	 * Decompresses a file. Output file must be identical bit-by-bit to the
 	 * original.
@@ -85,7 +118,7 @@ public class HuffProcessor {
 		while (true) {
 			int i = in.readBits(1);
 			if (i == -1) throw new HuffException("No PSEUDO_EOF");
-			//Traversing
+			//Traversing HuffNodes; 0 for left, 1 for right
 			if (i == 0) h = h.myLeft;
 			if (i == 1) h = h.myRight;
 			if (h.myLeft == null && h.myRight == null) {
@@ -101,6 +134,7 @@ public class HuffProcessor {
 		int val = in.readBits(1);
 		
 		if (val == 0) return new HuffNode(0,0,readTreeHeader(in), readTreeHeader(in));
+		//9 is BITS_PER_WORD + 1
 		return new HuffNode(in.readBits(9),0, null, null);
 	}
 }
