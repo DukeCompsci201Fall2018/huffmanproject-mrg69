@@ -42,7 +42,7 @@ public class HuffProcessor {
 	 *            Buffered bit stream writing to the output file.
 	 */
 	public void compress(BitInputStream in, BitOutputStream out){
-		//original skeleton code
+		//original skeleton code, general structure of this is spread out in the helper methods
 //		while (true){
 //			int val = in.readBits(BITS_PER_WORD);
 //			if (val == -1) break;
@@ -52,8 +52,66 @@ public class HuffProcessor {
 		
 		int[] counts = readForCounts(in);
 		HuffNode root = makeTreeFromCounts(counts);
-		
+		String[] codings = makeCodingsFromTree(root, "");
+		out.writeBits(BITS_PER_INT, HUFF_TREE);
+		writeHeader(root, out);
+		in.reset();
+		writeCompressedBits(codings, in, out);
+		out.close();
 	}
+	private void writeCompressedBits(String[] codings, BitInputStream in, BitOutputStream out) {
+		// TODO Auto-generated method stub
+		while (true) {
+			int val = in.readBits(BITS_PER_WORD);
+			if (val == -1) break;
+			String a = codings[val];
+			out.writeBits(a.length(), Integer.parseInt(a, 2));
+		}
+		String a = codings[PSEUDO_EOF];
+		out.writeBits(a.length(), Integer.parseInt(a,2));
+		out.writeBits(codings[256].length(), Integer.parseInt(codings[256], 2));
+	}
+
+	private void writeHeader(HuffNode root, BitOutputStream out) {
+		// TODO Auto-generated method stub
+		if (root.myLeft != null || root.myRight != null) {
+			out.writeBits(1, 0);
+			writeHeader(root.myLeft, out);
+			writeHeader(root.myRight, out);
+		}
+		else {
+			out.writeBits(1, 1);
+			out.writeBits(9, root.myValue);
+		}
+	}
+
+	private String[] makeCodingsFromTree(HuffNode h, String s) {
+		// TODO Auto-generated method stub
+		String[] encodings = new String[ALPH_SIZE+1];
+		mCFTHelper(h,"",encodings);
+		return encodings;
+	}
+
+	/**
+	 * Only utilized within makeCodingsFromTree (hence 'mCFT...')
+	 * 
+	 * @param h
+	 * @param s
+	 * @param encodings
+	 */
+	private void mCFTHelper(HuffNode h, String s, String[] encodings) {
+		// TODO Auto-generated method stub
+		if (h.myLeft == null && h.myRight == null) {
+	        encodings[h.myValue] = s;
+	        return;
+	        
+	   }
+		else {
+			mCFTHelper(h.myLeft, s + "0", encodings);
+			mCFTHelper(h.myRight, s + "1", encodings);
+		}
+	}
+
 	private HuffNode makeTreeFromCounts(int[] nums) {
 		// TODO Auto-generated method stub
 		PriorityQueue<HuffNode> pq = new PriorityQueue<HuffNode>();
